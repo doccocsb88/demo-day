@@ -54,6 +54,20 @@ export function Projects() {
     loadProjects();
   }, []);
 
+  const getErrorMessage = (err: any): string => {
+    if (typeof err === 'string') return err;
+    if (err?.response?.data?.error) {
+      const error = err.response.data.error;
+      if (typeof error === 'string') return error;
+      if (error?.message) return error.message;
+      if (error?.code) return `Error ${error.code}: ${error.message || 'Unknown error'}`;
+      return JSON.stringify(error);
+    }
+    if (err?.message) return err.message;
+    if (err?.code) return `Error: ${err.code}`;
+    return 'An unexpected error occurred';
+  };
+
   const loadProjects = async () => {
     try {
       setLoading(true);
@@ -62,7 +76,7 @@ export function Projects() {
       setError(null);
     } catch (err: any) {
       console.error('Error loading projects:', err);
-      setError(err.response?.data?.error || 'Failed to load projects');
+      setError(getErrorMessage(err) || 'Failed to load projects');
     } finally {
       setLoading(false);
     }
@@ -147,7 +161,7 @@ export function Projects() {
       handleCloseDialog();
     } catch (err: any) {
       console.error('Error saving project:', err);
-      setError(err.response?.data?.error || 'Failed to save project');
+      setError(getErrorMessage(err) || 'Failed to save project');
     }
   };
 
@@ -165,7 +179,7 @@ export function Projects() {
       await loadProjects();
     } catch (err: any) {
       console.error('Error deleting project:', err);
-      setError(err.response?.data?.error || 'Failed to delete project');
+      setError(getErrorMessage(err) || 'Failed to delete project');
     }
   };
 

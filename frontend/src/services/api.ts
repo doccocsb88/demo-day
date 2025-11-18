@@ -23,6 +23,28 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Handle errors consistently
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Normalize error response structure
+    if (error.response?.data) {
+      // Ensure error.data.error is always a string if it exists
+      if (error.response.data.error && typeof error.response.data.error !== 'string') {
+        const err = error.response.data.error;
+        if (err.message) {
+          error.response.data.error = err.message;
+        } else if (err.code) {
+          error.response.data.error = `Error ${err.code}: ${err.message || 'Unknown error'}`;
+        } else {
+          error.response.data.error = JSON.stringify(err);
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const remoteConfigApi = {
   getSnapshot: async (env: 'prod' | 'staging' = 'prod'): Promise<RemoteConfigSnapshot> => {
     const response = await api.get('/remote-config/snapshot', { params: { env } });
