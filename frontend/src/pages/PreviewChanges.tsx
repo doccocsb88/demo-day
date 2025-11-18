@@ -22,12 +22,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  IconButton,
 } from '@mui/material';
 import {
   ExpandMore,
-  CheckCircle,
-  Cancel,
   Publish,
   ArrowBack,
   PersonAdd,
@@ -36,7 +33,7 @@ import {
 } from '@mui/icons-material';
 // import ReactMarkdown from 'react-markdown';
 import { changeRequestApi } from '../services/api';
-import { RemoteConfigChangeRequest, RemoteConfigParameter, Reviewer } from '../types';
+import { RemoteConfigChangeRequest, RemoteConfigParameter } from '../types';
 import { useAuth } from '../hooks/useAuth';
 
 export function PreviewChanges() {
@@ -44,7 +41,6 @@ export function PreviewChanges() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [changeRequest, setChangeRequest] = useState<RemoteConfigChangeRequest | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
   const [newReviewerId, setNewReviewerId] = useState('');
   const [reviewerMessage, setReviewerMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -66,26 +62,6 @@ export function PreviewChanges() {
     }
   };
 
-  const handleApprove = async () => {
-    if (!id) return;
-    try {
-      await changeRequestApi.approve(id);
-      await loadChangeRequest();
-    } catch (error) {
-      console.error('Error approving:', error);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!id) return;
-    try {
-      await changeRequestApi.reject(id, rejectReason);
-      await loadChangeRequest();
-      setRejectReason('');
-    } catch (error) {
-      console.error('Error rejecting:', error);
-    }
-  };
 
   const handlePublish = async () => {
     if (!id) return;

@@ -65,10 +65,6 @@ export function ReviewRequestsList() {
     return currentUserReviewer;
   };
 
-  const isAssignedReviewer = (changeRequest: RemoteConfigChangeRequest) => {
-    return getReviewerStatus(changeRequest) !== undefined;
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
