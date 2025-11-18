@@ -4,9 +4,18 @@ import * as path from 'path';
 import { RemoteConfigParameter, RemoteConfigCondition, RemoteConfigSnapshot } from '../types';
 
 export class FirebaseAdminService {
-  private remoteConfig: admin.remoteConfig.RemoteConfig;
+  private remoteConfig: admin.remoteConfig.RemoteConfig | null = null;
+  private initialized = false;
 
   constructor() {
+    // Lazy initialization - don't initialize Firebase Admin until first use
+  }
+
+  private initialize(): void {
+    if (this.initialized) {
+      return;
+    }
+
     if (!admin.apps.length) {
       let credential: admin.ServiceAccount;
 
@@ -76,11 +85,20 @@ export class FirebaseAdminService {
       });
     }
     this.remoteConfig = admin.remoteConfig();
+    this.initialized = true;
+  }
+
+  private getRemoteConfig(): admin.remoteConfig.RemoteConfig {
+    if (!this.remoteConfig) {
+      this.initialize();
+    }
+    return this.remoteConfig!;
   }
 
   async getRemoteConfigTemplate(env: 'prod' | 'staging' = 'prod'): Promise<admin.remoteConfig.RemoteConfigTemplate> {
     try {
-      const template = await this.remoteConfig.getTemplate();
+      const remoteConfig = this.getRemoteConfig();
+      const template = await remoteConfig.getTemplate();
       return template;
     } catch (error) {
       console.error('Error fetching remote config template:', error);
@@ -92,19 +110,39 @@ export class FirebaseAdminService {
     try {
       const template = await this.getRemoteConfigTemplate(env);
       
-      const parameters: RemoteConfigParameter[] = Object.entries(template.parameters || {}).map(([key, param]) => ({
-        key,
-        defaultValue: param.defaultValue?.value || undefined,
-        conditionalValues: param.conditionalValues
-          ? Object.fromEntries(
-              Object.entries(param.conditionalValues).map(([condName, condValue]) => [
-                condName,
-                condValue.value || '',
-              ])
-            )
-          : undefined,
-        description: param.description || undefined,
-      }));
+      const parameters: RemoteConfigParameter[] = Object.entries(template.parameters || {}).map(([key, param]) => {
+        // Handle defaultValue - it can be RemoteConfigParameterValue (with value) or InAppDefaultValue (without value)
+        let defaultValue: string | undefined;
+        if (param.defaultValue) {
+          if ('value' in param.defaultValue) {
+            defaultValue = param.defaultValue.value;
+          } else {
+            // InAppDefaultValue case - use undefined or empty string
+            defaultValue = undefined;
+          }
+        }
+
+        // Handle conditionalValues
+        let conditionalValues: { [conditionName: string]: string } | undefined;
+        if (param.conditionalValues) {
+          conditionalValues = Object.fromEntries(
+            Object.entries(param.conditionalValues).map(([condName, condValue]) => {
+              if ('value' in condValue) {
+                return [condName, condValue.value || ''];
+              } else {
+                return [condName, ''];
+              }
+            })
+          );
+        }
+
+        return {
+          key,
+          defaultValue,
+          conditionalValues,
+          description: param.description || undefined,
+        };
+      });
 
       const conditions: RemoteConfigCondition[] = (template.conditions || []).map((cond) => ({
         name: cond.name,
@@ -127,6 +165,9 @@ export class FirebaseAdminService {
 
   async publishTemplate(newConfig: RemoteConfigSnapshot): Promise<void> {
     try {
+      // Get current template to preserve etag and parameterGroups
+      const currentTemplate = await this.getRemoteConfigTemplate('prod');
+      
       const template: admin.remoteConfig.RemoteConfigTemplate = {
         conditions: newConfig.conditions.map((cond) => ({
           name: cond.name,
@@ -150,9 +191,12 @@ export class FirebaseAdminService {
           };
           return acc;
         }, {} as Record<string, admin.remoteConfig.RemoteConfigParameter>),
+        parameterGroups: currentTemplate.parameterGroups || [],
+        etag: currentTemplate.etag || '',
       };
 
-      await this.remoteConfig.publishTemplate(template);
+      const remoteConfig = this.getRemoteConfig();
+      await remoteConfig.publishTemplate(template);
     } catch (error) {
       console.error('Error publishing template:', error);
       throw error;

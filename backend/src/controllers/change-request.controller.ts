@@ -20,7 +20,7 @@ export class ChangeRequestController {
   async getSnapshot(req: Request, res: Response) {
     try {
       const env = (req.query.env as 'prod' | 'staging') || 'prod';
-      const createdBy = (req.user as any)?.uid || 'system';
+      const createdBy = req.user?.uid || 'system';
       
       const snapshot = await this.firebaseAdmin.getSnapshot(env, createdBy);
       res.json(snapshot);
@@ -32,7 +32,7 @@ export class ChangeRequestController {
   async createChangeRequest(req: Request, res: Response) {
     try {
       const { title, description, newConfig, env, projectId } = req.body;
-      const createdBy = (req.user as any)?.uid || req.body.createdBy || 'anonymous';
+      const createdBy = req.user?.uid || req.body.createdBy || 'anonymous';
 
       // Get base version
       const baseConfig = await this.firebaseAdmin.getSnapshot(env || 'prod', createdBy);
@@ -93,7 +93,7 @@ export class ChangeRequestController {
         id: `log-${Date.now()}`,
         changeRequestId: id,
         action: 'submitted_for_review',
-        performedBy: (req.user as any)?.uid || changeRequest.createdBy,
+        performedBy: req.user?.uid || changeRequest.createdBy,
         performedAt: new Date().toISOString(),
       });
 
@@ -162,7 +162,7 @@ export class ChangeRequestController {
         id: `log-${Date.now()}`,
         changeRequestId: id,
         action: 'reviewer_added',
-        performedBy: (req.user as any)?.uid || 'system',
+        performedBy: req.user?.uid || 'system',
         performedAt: new Date().toISOString(),
         details: { reviewerId: userId },
       });
@@ -198,8 +198,8 @@ export class ChangeRequestController {
     try {
       const { id } = req.params;
       const { message } = req.body;
-      const reviewerId = (req.user as any)?.uid;
-      const reviewerEmail = (req.user as any)?.email;
+      const reviewerId = req.user?.uid;
+      const reviewerEmail = req.user?.email;
 
       if (!reviewerId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -257,8 +257,8 @@ export class ChangeRequestController {
     try {
       const { id } = req.params;
       const { message } = req.body;
-      const reviewerId = (req.user as any)?.uid;
-      const reviewerEmail = (req.user as any)?.email;
+      const reviewerId = req.user?.uid;
+      const reviewerEmail = req.user?.email;
 
       if (!reviewerId) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -321,7 +321,7 @@ export class ChangeRequestController {
         return res.status(404).json({ error: 'Change request not found' });
       }
 
-      const approvedBy = (req.user as any)?.uid || 'system';
+      const approvedBy = req.user?.uid || 'system';
 
       // Check if user is the creator
       if (changeRequest.createdBy === approvedBy) {
@@ -359,7 +359,7 @@ export class ChangeRequestController {
         return res.status(404).json({ error: 'Change request not found' });
       }
 
-      const rejectedBy = (req.user as any)?.uid || 'system';
+      const rejectedBy = req.user?.uid || 'system';
 
       await this.changeRequestModel.update(id, {
         status: 'rejected',
@@ -393,8 +393,8 @@ export class ChangeRequestController {
         return res.status(404).json({ error: 'Change request not found' });
       }
 
-      const publishedBy = (req.user as any)?.uid || 'system';
-      const publishedByEmail = (req.user as any)?.email;
+      const publishedBy = req.user?.uid || 'system';
+      const publishedByEmail = req.user?.email;
 
       // Check if user is the creator (by uid or email)
       if (changeRequest.createdBy !== publishedBy && changeRequest.createdBy !== publishedByEmail) {
