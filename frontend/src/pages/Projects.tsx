@@ -19,7 +19,7 @@ import {
   Alert,
   Divider,
 } from '@mui/material';
-import { Add, Edit, Delete, CheckCircle } from '@mui/icons-material';
+import { Add, Edit, Delete, CheckCircle, Code } from '@mui/icons-material';
 import { projectApi } from '../services/api';
 import { FirebaseProject } from '../types';
 import { useProject } from '../contexts/ProjectContext';
@@ -49,6 +49,9 @@ export function Projects() {
     generalConfig: '',
     slackWebhookUrl: '',
   });
+  const [backendJsonInput, setBackendJsonInput] = useState('');
+  const [frontendJsonInput, setFrontendJsonInput] = useState('');
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -116,8 +119,11 @@ export function Projects() {
         slackWebhookUrl: '',
       });
     }
+    setBackendJsonInput('');
+    setFrontendJsonInput('');
     setOpenDialog(true);
     setError(null);
+    setJsonError(null);
   };
 
   const handleCloseDialog = () => {
@@ -137,7 +143,10 @@ export function Projects() {
       generalConfig: '',
       slackWebhookUrl: '',
     });
+    setBackendJsonInput('');
+    setFrontendJsonInput('');
     setError(null);
+    setJsonError(null);
   };
 
   const handleSubmit = async () => {
@@ -186,6 +195,59 @@ export function Projects() {
   const handleSelectProject = (project: FirebaseProject) => {
     setSelectedProject(project);
     navigate('/');
+  };
+
+  const parseBackendJson = () => {
+    try {
+      setJsonError(null);
+      const json = JSON.parse(backendJsonInput);
+      
+      // Extract fields from Firebase Admin SDK service account JSON
+      if (json.private_key) {
+        setFormData(prev => ({ ...prev, privateKey: json.private_key }));
+      }
+      if (json.client_email) {
+        setFormData(prev => ({ ...prev, clientEmail: json.client_email }));
+      }
+      if (json.project_id && !formData.projectId) {
+        setFormData(prev => ({ ...prev, projectId: json.project_id }));
+      }
+      
+      setBackendJsonInput('');
+    } catch (err: any) {
+      setJsonError('Invalid JSON format for Backend Config: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const parseFrontendJson = () => {
+    try {
+      setJsonError(null);
+      const json = JSON.parse(frontendJsonInput);
+      
+      // Extract fields from Firebase Client SDK config JSON
+      if (json.apiKey) {
+        setFormData(prev => ({ ...prev, apiKey: json.apiKey }));
+      }
+      if (json.authDomain) {
+        setFormData(prev => ({ ...prev, authDomain: json.authDomain }));
+      }
+      if (json.projectId && !formData.projectId) {
+        setFormData(prev => ({ ...prev, projectId: json.projectId }));
+      }
+      if (json.storageBucket) {
+        setFormData(prev => ({ ...prev, storageBucket: json.storageBucket }));
+      }
+      if (json.messagingSenderId) {
+        setFormData(prev => ({ ...prev, messagingSenderId: json.messagingSenderId }));
+      }
+      if (json.appId) {
+        setFormData(prev => ({ ...prev, appId: json.appId }));
+      }
+      
+      setFrontendJsonInput('');
+    } catch (err: any) {
+      setJsonError('Invalid JSON format for Frontend Config: ' + (err.message || 'Unknown error'));
+    }
   };
 
   return (
@@ -290,6 +352,11 @@ export function Projects() {
           {editingProject ? 'Edit Project' : 'Create New Project'}
         </DialogTitle>
         <DialogContent>
+          {(error || jsonError) && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => { setError(null); setJsonError(null); }}>
+              {error || jsonError}
+            </Alert>
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, maxHeight: '70vh', overflow: 'auto' }}>
             <TextField
               label="Project Name *"
@@ -308,6 +375,28 @@ export function Projects() {
             />
             
             <Divider sx={{ my: 1 }}>Backend Config (Firebase Admin SDK)</Divider>
+            
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                label="Paste Service Account JSON"
+                value={backendJsonInput}
+                onChange={(e) => setBackendJsonInput(e.target.value)}
+                fullWidth
+                multiline
+                rows={6}
+                helperText="Paste the full Firebase Admin SDK service account JSON here"
+                sx={{ mb: 1 }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<Code />}
+                onClick={parseBackendJson}
+                disabled={!backendJsonInput.trim()}
+                fullWidth
+              >
+                Parse JSON and Fill Fields
+              </Button>
+            </Box>
             
             <TextField
               label="Client Email *"
@@ -329,6 +418,28 @@ export function Projects() {
             />
             
             <Divider sx={{ my: 1 }}>Frontend Config (Firebase Client SDK)</Divider>
+            
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                label="Paste Firebase Client Config JSON"
+                value={frontendJsonInput}
+                onChange={(e) => setFrontendJsonInput(e.target.value)}
+                fullWidth
+                multiline
+                rows={6}
+                helperText="Paste the Firebase Client SDK config JSON here (with apiKey, authDomain, etc.)"
+                sx={{ mb: 1 }}
+              />
+              <Button
+                variant="outlined"
+                startIcon={<Code />}
+                onClick={parseFrontendJson}
+                disabled={!frontendJsonInput.trim()}
+                fullWidth
+              >
+                Parse JSON and Fill Fields
+              </Button>
+            </Box>
             
             <TextField
               label="API Key *"

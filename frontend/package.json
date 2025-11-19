@@ -20,7 +20,10 @@
     "firebase": "^10.7.1",
     "axios": "^1.6.2",
     "react-syntax-highlighter": "^15.5.0",
-    "@types/react-syntax-highlighter": "^15.5.11"
+    "@types/react-syntax-highlighter": "^15.5.11",
+    "@vercel/node": "^3.0.7",
+    "firebase-admin": "^12.0.0",
+    "mongodb": "^6.3.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -32,7 +35,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "@types/node": "^20.10.0"
   }
 }
 
