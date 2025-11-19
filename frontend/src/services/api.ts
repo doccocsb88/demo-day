@@ -7,7 +7,8 @@ import {
   FirebaseProject,
 } from '../types';
 
-const API_BASE_URL = '/api';
+// Use environment variable for API URL, fallback to backend domain
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://demo-day-backend-nine.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
